@@ -1,6 +1,6 @@
 use async_std::fs::File;
 use async_std::io::BufReader;
-use http_types::StatusCode;
+use http_types::{Body, StatusCode};
 
 use crate::{Endpoint, Request, Response};
 
@@ -54,8 +54,19 @@ impl<State> Endpoint<State> for ServeDir {
                 }
             };
 
+            let len = match file.metadata().await {
+                Ok(metadata) => metadata.len() as usize,
+                Err(_) => {
+                    log::warn!("Could not retrieve metadata");
+                    return Response::new(StatusCode::Forbidden);
+                }
+            };
+
+            let body = Body::from_reader(BufReader::new(file), Some(len));
             // TODO: fix related bug where async-h1 crashes on large files
-            Response::new(StatusCode::Ok).body(BufReader::new(file))
+            let mut res = Response::new(StatusCode::Ok);
+            res.set_body(body);
+            res
         })
     }
 }

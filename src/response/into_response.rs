@@ -1,6 +1,6 @@
 use crate::{Request, Response};
 use async_std::io::BufReader;
-use http_types::StatusCode;
+use http_types::{Body, StatusCode};
 
 /// Conversion into a `Response`.
 pub trait IntoResponse: Send + Sized {
@@ -43,18 +43,23 @@ pub trait IntoResponse: Send + Sized {
 
 impl IntoResponse for String {
     fn into_response(self) -> Response {
-        Response::new(StatusCode::Ok)
+        let mut res = Response::new(StatusCode::Ok)
             .set_header(
                 http_types::headers::CONTENT_TYPE,
                 "text/plain; charset=utf-8",
-            )
-            .body_string(self)
+            );
+        res.set_body(self);
+        res
     }
 }
 
 impl<State: Send + Sync + 'static> IntoResponse for Request<State> {
     fn into_response(self) -> Response {
-        Response::new(StatusCode::Ok).body(BufReader::new(self))
+        let mut res = Response::new(StatusCode::Ok);
+        let len = self.len();
+        let body = Body::from_reader(BufReader::new(self), len);
+        res.set_body(body);
+        res
     }
 }
 

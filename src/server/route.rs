@@ -1,3 +1,4 @@
+use std::fmt::Debug;
 use std::io;
 use std::path::Path;
 use std::sync::Arc;
@@ -88,7 +89,15 @@ impl<'a, State: 'static> Route<'a, State> {
     }
 
     /// Apply the given middleware to the current route.
-    pub fn middleware(&mut self, middleware: impl Middleware<State>) -> &mut Self {
+    pub fn middleware<M>(&mut self, middleware: M) -> &mut Self
+    where
+        M: Middleware<State> + Debug,
+    {
+        log::trace!(
+            "Adding middleware {:?} to route {:?}",
+            middleware,
+            self.path
+        );
         self.middleware.push(Arc::new(middleware));
         self
     }
