@@ -9,8 +9,7 @@ fn main() -> Result<(), std::io::Error> {
         let mut app = tide::new();
         app.at("/").get(|_| async move {
             let file = fs::File::open(file!()).await.unwrap();
-            let res = Response::new(StatusCode::Ok).body(BufReader::new(file));
-            res
+            Response::new(StatusCode::Ok).body(BufReader::new(file))
         });
         app.listen("127.0.0.1:8080").await?;
         Ok(())

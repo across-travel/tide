@@ -102,6 +102,30 @@ impl Response {
         self.set_header(http_types::headers::CONTENT_TYPE, format!("{}", mime))
     }
 
+    /// Pass a string as the request body.
+    ///
+    /// # Mime
+    ///
+    /// The encoding is set to `text/plain; charset=utf-8`.
+    pub fn body_string(mut self, string: String) -> Self {
+        self.res.set_body(string);
+        self.set_mime(mime::TEXT_PLAIN_UTF_8)
+    }
+
+    /// Pass raw bytes as the request body.
+    ///
+    /// # Mime
+    ///
+    /// The encoding is set to `application/octet-stream`.
+    pub fn body<R>(mut self, reader: R) -> Self
+    where
+        R: BufRead + Unpin + Send + Sync + 'static,
+    {
+        self.res
+            .set_body(http_types::Body::from_reader(reader, None));
+        self.set_mime(mime::APPLICATION_OCTET_STREAM)
+    }
+
     /// Set the body reader.
     pub fn set_body(&mut self, body: impl Into<Body>) {
         self.res.set_body(body);

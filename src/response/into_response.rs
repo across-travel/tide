@@ -43,11 +43,10 @@ pub trait IntoResponse: Send + Sized {
 
 impl IntoResponse for String {
     fn into_response(self) -> Response {
-        let mut res = Response::new(StatusCode::Ok)
-            .set_header(
-                http_types::headers::CONTENT_TYPE,
-                "text/plain; charset=utf-8",
-            );
+        let mut res = Response::new(StatusCode::Ok).set_header(
+            http_types::headers::CONTENT_TYPE,
+            "text/plain; charset=utf-8",
+        );
         res.set_body(self);
         res
     }

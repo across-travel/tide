@@ -4,7 +4,7 @@ use http_types::{Body, StatusCode};
 
 use crate::{Endpoint, Request, Response};
 
-use std::path::{Path,PathBuf};
+use std::path::{Path, PathBuf};
 
 type BoxFuture<'a, T> = std::pin::Pin<Box<dyn std::future::Future<Output = T> + 'a + Send>>;
 pub struct ServeDir {
