@@ -4,7 +4,7 @@ use http_types::{Body, StatusCode};
 
 use crate::{Endpoint, Request, Response};
 
-use std::path::PathBuf;
+use std::path::{Path,PathBuf};
 
 type BoxFuture<'a, T> = std::pin::Pin<Box<dyn std::future::Future<Output = T> + 'a + Send>>;
 pub struct ServeDir {
@@ -24,22 +24,33 @@ impl<State> Endpoint<State> for ServeDir {
         let path = req.uri().path();
         let path = path.replace(&self.prefix, "");
         let path = path.trim_start_matches('/');
-        let dir = self.dir.clone();
-        let dir = dir.join(&path);
+        let mut dir = self.dir.clone();
+        for p in Path::new(path) {
+            dir.push(&p);
+        }
         log::info!("Requested file: {:?}", dir);
 
         Box::pin(async move {
             let file = match async_std::fs::canonicalize(&dir).await {
                 Err(_) => {
-                    log::info!("File not found: {:?}", dir);
+                    // This needs to return the same status code as the
+                    // unauthorized case below to ensure we don't leak
+                    // information of which files exist to adversaries.
+                    log::warn!("File not found: {:?}", dir);
                     return Response::new(StatusCode::NotFound);
                 }
                 Ok(mut file_path) => {
                     // Verify this is a sub-path of the original dir.
                     let mut file_iter = (&mut file_path).iter();
+                    dbg!("hello");
                     for lhs in &dir {
+                        dbg!(&lhs);
                         if Some(lhs) != file_iter.next() {
-                            return Response::new(StatusCode::Forbidden);
+                            // This needs to return the same status code as the
+                            // 404 case above to ensure we don't leak
+                            // information about the local fs to adversaries.
+                            log::warn!("Unauthorized attempt to read: {:?}", file_path);
+                            return Response::new(StatusCode::NotFound);
                         }
                     }
 
@@ -48,7 +59,7 @@ impl<State> Endpoint<State> for ServeDir {
                         Ok(file) => file,
                         Err(_) => {
                             log::warn!("Could not open {:?}", file_path);
-                            return Response::new(StatusCode::Forbidden);
+                            return Response::new(StatusCode::InternalServerError);
                         }
                     }
                 }
@@ -58,7 +69,7 @@ impl<State> Endpoint<State> for ServeDir {
                 Ok(metadata) => metadata.len() as usize,
                 Err(_) => {
                     log::warn!("Could not retrieve metadata");
-                    return Response::new(StatusCode::Forbidden);
+                    return Response::new(StatusCode::InternalServerError);
                 }
             };
 
