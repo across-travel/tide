@@ -315,11 +315,9 @@ impl<State: Send + Sync + 'static> Server<State> {
                 // This is not at all efficient, but that's okay for now.
                 let mut buf = vec![0; 1024];
                 let read = futures::ready!(Pin::new(&mut self.body).poll_read(cx, &mut buf))?;
-                dbg!(read);
                 if read == 0 {
                     return Poll::Ready(None);
                 } else {
-                    dbg!(&buf);
                     Poll::Ready(Some(Ok(buf.clone())))
                 }
             }

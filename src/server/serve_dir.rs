@@ -42,16 +42,12 @@ impl<State> Endpoint<State> for ServeDir {
                 Ok(mut file_path) => {
                     // Verify this is a sub-path of the original dir.
                     let mut file_iter = (&mut file_path).iter();
-                    dbg!("hello");
-                    for lhs in &dir {
-                        dbg!(&lhs);
-                        if Some(lhs) != file_iter.next() {
-                            // This needs to return the same status code as the
-                            // 404 case above to ensure we don't leak
-                            // information about the local fs to adversaries.
-                            log::warn!("Unauthorized attempt to read: {:?}", file_path);
-                            return Response::new(StatusCode::NotFound);
-                        }
+                    if !dir.iter().all(|lhs| Some(lhs) == file_iter.next()) {
+                        // This needs to return the same status code as the
+                        // 404 case above to ensure we don't leak
+                        // information about the local fs to adversaries.
+                        log::warn!("Unauthorized attempt to read: {:?}", file_path);
+                        return Response::new(StatusCode::NotFound);
                     }
 
                     // Open the file and send back the contents.
