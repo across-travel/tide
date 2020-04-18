@@ -134,7 +134,7 @@ impl<'a, State: 'static> Route<'a, State> {
     ///
     /// ```no_run
     /// #[async_std::main]
-    /// fn main() -> Result<(), std::io::Error> {
+    /// async fn main() -> Result<(), std::io::Error> {
     ///     let mut app = tide::new();
     ///     app.at("/public/images").serve_dir("images/")?;
     ///     app.listen("127.0.0.1:8080").await?;

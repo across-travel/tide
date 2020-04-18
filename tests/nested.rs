@@ -3,6 +3,7 @@ use http_service_mock::make_server;
 use http_types::headers::{HeaderName, HeaderValue};
 use http_types::{Method, Request, Url};
 use std::str::FromStr;
+use tide::{Middleware, Response, Request as TRequest, Next};
 
 #[async_std::test]
 async fn nested() {
@@ -36,23 +37,32 @@ async fn nested() {
 #[async_std::test]
 async fn nested_middleware() {
     let echo_path = |req: tide::Request<()>| async move { req.uri().path().to_string() };
-    fn test_middleware(
-        req: tide::Request<()>,
-        next: tide::Next<'_, ()>,
-    ) -> BoxFuture<'_, tide::Response> {
-        Box::pin(async move {
-            let res = next.run(req).await;
-            res.set_header(
-                HeaderName::from_ascii("X-Tide-Test".to_owned().into_bytes()).unwrap(),
-                "1",
-            )
-        })
+
+    #[derive(Debug, Clone, Default)]
+    pub struct TestMiddleware;
+
+    impl TestMiddleware {
+        pub fn new() -> Self {
+            Self {}
+        }
+    }
+
+    impl<State: Send + Sync + 'static> Middleware<State> for TestMiddleware {
+        fn handle<'a>(&'a self, req: TRequest<State>, next: Next<'a, State>) -> BoxFuture<'a, Response> {
+            Box::pin(async move {
+                let res = next.run(req).await;
+                res.set_header(
+                    HeaderName::from_ascii("X-Tide-Test".to_owned().into_bytes()).unwrap(),
+                    "1",
+                )
+            })
+        }
     }
 
     let mut app = tide::new();
 
     let mut inner_app = tide::new();
-    inner_app.middleware(test_middleware);
+    inner_app.middleware(TestMiddleware::new());
     inner_app.at("/echo").get(echo_path);
     inner_app.at("/:foo/bar").strip_prefix().get(echo_path);
     app.at("/foo").nest(inner_app);
