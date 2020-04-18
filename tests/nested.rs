@@ -3,7 +3,7 @@ use http_service_mock::make_server;
 use http_types::headers::{HeaderName, HeaderValue};
 use http_types::{Method, Request, Url};
 use std::str::FromStr;
-use tide::{Middleware, Response, Request as TRequest, Next};
+use tide::{Middleware, Next, Request as TRequest, Response};
 
 #[async_std::test]
 async fn nested() {
@@ -48,7 +48,11 @@ async fn nested_middleware() {
     }
 
     impl<State: Send + Sync + 'static> Middleware<State> for TestMiddleware {
-        fn handle<'a>(&'a self, req: TRequest<State>, next: Next<'a, State>) -> BoxFuture<'a, Response> {
+        fn handle<'a>(
+            &'a self,
+            req: TRequest<State>,
+            next: Next<'a, State>,
+        ) -> BoxFuture<'a, Response> {
             Box::pin(async move {
                 let res = next.run(req).await;
                 res.set_header(
